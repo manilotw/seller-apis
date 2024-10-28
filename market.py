@@ -11,6 +11,23 @@ logger = logging.getLogger(__file__)
 
 
 def get_product_list(page, campaign_id, access_token):
+    """Получить список товаров для заданной кампании.
+
+    Args:
+        page (str): Токен страницы для пагинации.
+        campaign_id (str): Идентификатор кампании.
+        access_token (str): Токен доступа к API.
+
+    Returns:
+        list: Список товаров в кампании.
+
+    Примеры:
+        Корректное использование:
+        >>> product_list = get_product_list("", "12345", "ваш_токен")
+
+        Некорректное использование:
+        >>> product_list = get_product_list("", None, "ваш_токен")
+    """
     endpoint_url = "https://api.partner.market.yandex.ru/"
     headers = {
         "Content-Type": "application/json",
@@ -30,6 +47,23 @@ def get_product_list(page, campaign_id, access_token):
 
 
 def update_stocks(stocks, campaign_id, access_token):
+    """Обновить остатки товаров для заданной кампании.
+
+    Args:
+        stocks (list): Список остатков товаров.
+        campaign_id (str): Идентификатор кампании.
+        access_token (str): Токен доступа к API.
+
+    Returns:
+        dict: Ответ API после обновления остатков.
+
+    Примеры:
+        Корректное использование:
+        >>> update_response = update_stocks(stocks, "12345", "ваш_токен")
+
+        Некорректное использование:
+        >>> update_response = update_stocks(None, "12345", "ваш_токен")
+    """
     endpoint_url = "https://api.partner.market.yandex.ru/"
     headers = {
         "Content-Type": "application/json",
@@ -46,6 +80,23 @@ def update_stocks(stocks, campaign_id, access_token):
 
 
 def update_price(prices, campaign_id, access_token):
+    """Обновить цены товаров для заданной кампании.
+
+    Args:
+        prices (list): Список цен товаров.
+        campaign_id (str): Идентификатор кампании.
+        access_token (str): Токен доступа к API.
+
+    Returns:
+        dict: Ответ API после обновления цен.
+
+    Примеры:
+        Корректное использование:
+        >>> update_response = update_price(prices, "12345", "ваш_токен")
+
+        Некорректное использование:
+        >>> update_response = update_price(None, "12345", "ваш_токен")
+    """
     endpoint_url = "https://api.partner.market.yandex.ru/"
     headers = {
         "Content-Type": "application/json",
@@ -62,7 +113,22 @@ def update_price(prices, campaign_id, access_token):
 
 
 def get_offer_ids(campaign_id, market_token):
-    """Получить артикулы товаров Яндекс маркета"""
+    """Получить артикулы товаров Яндекс маркета.
+
+    Args:
+        campaign_id (str): Идентификатор кампании.
+        market_token (str): Токен доступа к API.
+
+    Returns:
+        list: Список артикулов товаров.
+
+    Примеры:
+        Корректное использование:
+        >>> offer_ids = get_offer_ids("12345", "ваш_токен")
+
+        Некорректное использование:
+        >>> offer_ids = get_offer_ids(None, "ваш_токен")
+    """
     page = ""
     product_list = []
     while True:
@@ -78,8 +144,24 @@ def get_offer_ids(campaign_id, market_token):
 
 
 def create_stocks(watch_remnants, offer_ids, warehouse_id):
-    # Уберем то, что не загружено в market
-    stocks = list()
+    """Создать остатки для обновления.
+
+    Args:
+        watch_remnants (list): Список остатков товаров.
+        offer_ids (list): Список артикулов товаров.
+        warehouse_id (str): Идентификатор склада.
+
+    Returns:
+        list: Список остатков для обновления.
+
+    Примеры:
+        Корректное использование:
+        >>> stocks = create_stocks(watch_remnants, offer_ids, "ваш_склад_id")
+
+        Некорректное использование:
+        >>> stocks = create_stocks([], None, "ваш_склад_id")
+    """
+    stocks = []
     date = str(datetime.datetime.utcnow().replace(microsecond=0).isoformat() + "Z")
     for watch in watch_remnants:
         if str(watch.get("Код")) in offer_ids:
@@ -104,7 +186,6 @@ def create_stocks(watch_remnants, offer_ids, warehouse_id):
                 }
             )
             offer_ids.remove(str(watch.get("Код")))
-    # Добавим недостающее из загруженного:
     for offer_id in offer_ids:
         stocks.append(
             {
@@ -123,26 +204,54 @@ def create_stocks(watch_remnants, offer_ids, warehouse_id):
 
 
 def create_prices(watch_remnants, offer_ids):
+    """Создать цены для обновления.
+
+    Args:
+        watch_remnants (list): Список остатков товаров.
+        offer_ids (list): Список артикулов товаров.
+
+    Returns:
+        list: Список цен для обновления.
+
+    Примеры:
+        Корректное использование:
+        >>> prices = create_prices(watch_remnants, offer_ids)
+
+        Некорректное использование:
+        >>> prices = create_prices([], None)
+    """
     prices = []
     for watch in watch_remnants:
         if str(watch.get("Код")) in offer_ids:
             price = {
                 "id": str(watch.get("Код")),
-                # "feed": {"id": 0},
                 "price": {
                     "value": int(price_conversion(watch.get("Цена"))),
-                    # "discountBase": 0,
                     "currencyId": "RUR",
-                    # "vat": 0,
                 },
-                # "marketSku": 0,
-                # "shopSku": "string",
             }
             prices.append(price)
     return prices
 
 
 async def upload_prices(watch_remnants, campaign_id, market_token):
+    """Загрузить цены для кампании.
+
+    Args:
+        watch_remnants (list): Список остатков товаров.
+        campaign_id (str): Идентификатор кампании.
+        market_token (str): Токен доступа к API.
+
+    Returns:
+        list: Список обновленных цен.
+
+    Примеры:
+        Корректное использование:
+        >>> prices = await upload_prices(watch_remnants, "12345", "ваш_токен")
+
+        Некорректное использование:
+        >>> prices = await upload_prices([], None, "ваш_токен")
+    """
     offer_ids = get_offer_ids(campaign_id, market_token)
     prices = create_prices(watch_remnants, offer_ids)
     for some_prices in list(divide(prices, 500)):
@@ -151,6 +260,24 @@ async def upload_prices(watch_remnants, campaign_id, market_token):
 
 
 async def upload_stocks(watch_remnants, campaign_id, market_token, warehouse_id):
+    """Загрузить остатки для кампании.
+
+    Args:
+        watch_remnants (list): Список остатков товаров.
+        campaign_id (str): Идентификатор кампании.
+        market_token (str): Токен доступа к API.
+        warehouse_id (str): Идентификатор склада.
+
+    Returns:
+        tuple: Кортеж из списка непустых остатков и полного списка остатков.
+
+    Примеры:
+        Корректное использование:
+        >>> not_empty, all_stocks = await upload_stocks(watch_remnants, "12345", "ваш_токен", "ваш_склад_id")
+
+        Некорректное использование:
+        >>> not_empty, all_stocks =
+    """
     offer_ids = get_offer_ids(campaign_id, market_token)
     stocks = create_stocks(watch_remnants, offer_ids, warehouse_id)
     for some_stock in list(divide(stocks, 2000)):
